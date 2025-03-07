@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{url_for('static', filename='webpage3.css')}}">
+    <script src="{{url_for('static', filename='js/webpage3.js')}}"></script>
+    <title>Image Identification</title>
+</head>
+<body>
+    <div class="container">
+        <h1>Image Identification</h1>
+        <div class="image-container">
+            <h3>Flower Image</h3>
+            <img src="{{url_for ('static', filename='images/flower.jpg')}}" alt="Flower">
+            <label for="flowerInput">Your Answer:</label>
+            <input type="text" id="flowerInput" placeholder="Type 'flower'">
+        </div>
+        <div class="image-container">
+            <h3>Hello Image</h3>
+            <img src="{{url_for ('static', filename='images/hello.png')}}" alt="Hello">
+            <label for="helloInput">Your Answer:</label>
+            <input type="text" id="helloInput" placeholder="Type 'hello'">
+        </div>
+        <div class="image-container">
+            <h3>Lion Image</h3>
+            <img src="{{url_for ('static', filename='images/lion.jpg')}}" alt="Lion">
+            <label for="lionInput">Your Answer:</label>
+            <input type="text" id="lionInput" placeholder="Type 'lion'">
+        </div>
+        <button id="identifyBtn">Submit</button>
+        <div class="result" id="result"></div>
+    </div>
+
+    <script>
+        document.getElementById('identifyBtn').addEventListener('click', () => {
+            const resultDiv = document.getElementById('result');
+
+            // Get user inputs
+            const flowerInput = document.getElementById('flowerInput').value.trim().toLowerCase();
+            const helloInput = document.getElementById('helloInput').value.trim().toLowerCase();
+            const lionInput = document.getElementById('lionInput').value.trim().toLowerCase();
+
+            let points = 0;
+
+            // Decision tree logic
+            if (flowerInput === 'flower') {
+                points += 10;
+            } else if (flowerInput) {
+                points += 5;
+            }
+
+            if (helloInput === 'hello') {
+                points += 10;
+            } else if (helloInput) {
+                points += 5;
+            }
+
+            if (lionInput === 'lion') {
+                points += 10;
+            } else if (lionInput) {
+                points += 5;
+            }
+
+            if (flowerInput === 'flower' && helloInput === 'hello' && lionInput === 'lion') {
+                resultDiv.textContent = "No dyslexia detected! Total points: " + points;
+            } else {
+                resultDiv.textContent = `There were some mistakes. Total points: ${points}`;
+            }
+        });
+    </script>
+</body>
+</html>

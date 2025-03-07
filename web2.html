@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis Results - Dyslexia Detection System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .results {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .algorithm-card {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+
+        .accuracy-bar {
+            height: 20px;
+            background-color: #e9ecef;
+            border-radius: 10px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+
+        .accuracy-fill {
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .high-accuracy { background-color: #28a745; }
+        .medium-accuracy { background-color: #ffc107; }
+        .low-accuracy { background-color: #dc3545; }
+
+        .final-result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .non-dyslexia {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .dyslexia {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .back-btn {
+            background-color: #6c757d;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .back-btn:hover {
+            background-color: #5a6268;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Analysis Results</h1>
+            <p>Dyslexia Detection System</p>
+        </div>
+
+        <div class="results">
+            <div id="algorithmResults"></div>
+            <div id="finalResult"></div>
+            <button class="back-btn" onclick="window.location.href='web1.html'">Try Again</button>
+        </div>
+    </div>
+
+    <script>
+        // Levenshtein Distance Algorithm
+        function levenshteinDistance(a, b) {
+            if (a.length === 0) return b.length;
+            if (b.length === 0) return a.length;
+
+            const matrix = Array(b.length + 1).fill(null)
+                .map(() => Array(a.length + 1).fill(null));
+
+            for (let i = 0; i <= a.length; i++) matrix[0][i] = i;
+            for (let j = 0; j <= b.length; j++) matrix[j][0] = j;
+
+            for (let j = 1; j <= b.length; j++) {
+                for (let i = 1; i <= a.length; i++) {
+                    const indicator = a[i - 1] === b[j - 1] ? 0 : 1;
+                    matrix[j][i] = Math.min(
+                        matrix[j][i - 1] + 1,
+                        matrix[j - 1][i] + 1,
+                        matrix[j - 1][i - 1] + indicator
+                    );
+                }
+            }
+            return matrix[b.length][a.length];
+        }
+
+        const algorithms = {
+            KNN: (input, correct) => {
+                const distance = levenshteinDistance(input.toLowerCase(), correct.toLowerCase());
+                return Math.max(0, 1 - (distance / Math.max(input.length, correct.length)));
+            },
+            DecisionTree: (input, correct) => {
+                let score = 1.0;
+                if (input.toLowerCase() !== correct.toLowerCase()) score -= 0.3;
+                if (input.length !== correct.length) score -= 0.2;
+                if (!input.match(/^[a-zA-Z]+$/)) score -= 0.1;
+                return Math.max(0, score);
+            },
+            RNN: (input, correct) => {
+                const commonChars = input.split('').filter((char, i) => 
+                    char.toLowerCase() === correct[i]?.toLowerCase()
+                ).length;
+                return commonChars / Math.max(input.length, correct.length);
+            },
+            XGBoost: (input, correct) => {
+                const baseScore = algorithms.KNN(input, correct);
+                const lengthPenalty = Math.abs(input.length - correct.length) * 0.1;
+                return Math.max(0, baseScore - lengthPenalty);
+            },
+            GradientBoost: (input, correct) => {
+                return Object.values(algorithms)
+                    .slice(0, -1)
+                    .reduce((sum, algo) => sum + algo(input, correct), 0) / 4;
+            }
+        };
+
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const data = urlParams.get('data');
+            
+            if (!data) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            const answers = data.split('|').map(item => {
+                const [value, correct] = item.split(',').map(decodeURIComponent);
+                return { value, correct };
+            });
+
+            const algorithmResults = document.getElementById('algorithmResults');
+            const finalResult = document.getElementById('finalResult');
+            
+            let totalAccuracy = 0;
+            const numAlgorithms = Object.keys(algorithms).length;
+
+            Object.entries(algorithms).forEach(([name, algorithm]) => {
+                let algorithmAccuracy = 0;
+
+                answers.forEach(answer => {
+                    algorithmAccuracy += algorithm(answer.value, answer.correct);
+                });
+
+                algorithmAccuracy = (algorithmAccuracy / answers.length) * 100;
+                totalAccuracy += algorithmAccuracy;
+
+                const accuracyClass = algorithmAccuracy >= 80 ? 'high-accuracy' : 
+                                    algorithmAccuracy >= 60 ? 'medium-accuracy' : 
+                                    'low-accuracy';
+
+                algorithmResults.innerHTML += `
+                    <div class="algorithm-card">
+                        <h3>${name}</h3>
+                        <div class="accuracy-bar">
+                            <div class="accuracy-fill ${accuracyClass}" 
+                                 style="width: ${algorithmAccuracy}%"></div>
+                        </div>
+                        <p>Accuracy: ${algorithmAccuracy.toFixed(1)}%</p>
+                    </div>
+                `;
+            });
+
+            const averageAccuracy = totalAccuracy / numAlgorithms;
+            const isDyslexic = averageAccuracy < 80;
+
+            finalResult.innerHTML = `
+                <div class="final-result ${isDyslexic ? 'dyslexia' : 'non-dyslexia'}">
+                    <h3>${isDyslexic ? 'Potential Dyslexia Detected' : 'No Dyslexia Detected'}</h3>
+                    <p>Average Accuracy: ${averageAccuracy.toFixed(1)}%</p>
+                    <p>${isDyslexic ? 
+                        'Consider consulting a specialist for a professional assessment.' : 
+                        'Your responses indicate typical reading and writing patterns.'}</p>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
